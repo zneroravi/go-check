@@ -1,0 +1,1 @@
+import "dotenv/config";\nimport express from "express";\nconst app = express();\napp.use(express.json());\napp.get("/", (_req, res) => res.json({ status: "ok" }));\napp.listen(3000, () => console.log("Server running on :3000"));
