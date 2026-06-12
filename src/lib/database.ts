@@ -21,4 +21,14 @@ db.exec(`
   )
 `);
 
+// Add expires_at column if it doesn't exist yet (migration for existing DBs)
+const alterTableStmt = db.prepare(
+  "ALTER TABLE urls ADD COLUMN expires_at TEXT"
+);
+try {
+  alterTableStmt.run();
+} catch {
+  // Column already exists, ignore
+}
+
 export default db;
