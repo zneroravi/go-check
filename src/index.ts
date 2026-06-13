@@ -18,6 +18,16 @@ app.use("/api/urls", urlRoutes);
 
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
+// Root-level redirect endpoint: GET /:code
+app.get("/:code", async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  try {
+    const { UrlController } = await import("@/controllers/urlController");
+    return UrlController.redirectToOriginal(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use((_req, _res, next) => {
   next(new AppError("Not found", 404));
 });
