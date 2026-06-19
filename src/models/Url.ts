@@ -7,7 +7,8 @@ const SELECT_COLUMNS = `
   short_code as shortCode,
   clicks,
   created_at as createdAt,
-  updated_at as updatedAt
+  updated_at as updatedAt,
+  expires_at as expiresAt
 `;
 
 export class UrlModel {
@@ -26,12 +27,12 @@ export class UrlModel {
     return stmt.get(id) as Url | undefined;
   }
 
-  static create(data: { id: string; originalUrl: string; shortCode: string }): Url {
+  static create(data: { id: string; originalUrl: string; shortCode: string; expiresAt: string | null }): Url {
     const stmt = db.prepare(`
-      INSERT INTO urls (id, original_url, short_code)
-      VALUES (?, ?, ?)
+      INSERT INTO urls (id, original_url, short_code, expires_at)
+      VALUES (?, ?, ?, ?)
     `);
-    const info = stmt.run(data.id, data.originalUrl, data.shortCode);
+    const info = stmt.run(data.id, data.originalUrl, data.shortCode, data.expiresAt);
     return this.findById(data.id)!;
   }
 
@@ -49,5 +50,11 @@ export class UrlModel {
   static existsByShortCode(shortCode: string): boolean {
     const stmt = db.prepare(`SELECT 1 FROM urls WHERE short_code = ?`);
     return !!stmt.get(shortCode);
+  }
+
+  static purgeExpired(): number {
+    const stmt = db.prepare(`DELETE FROM urls WHERE expires_at IS NOT NULL AND expires_at <= datetime('now')`);
+    const result = stmt.run();
+    return result.changes;
   }
 }
