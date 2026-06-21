@@ -6,6 +6,6 @@ const router = Router();
 router.post("/", UrlController.createShortUrl);
 router.get("/", UrlController.getAllUrls);
 router.get("/:shortCode", UrlController.redirectToOriginal);
-router.delete("/:id", UrlController.deleteUrl);
+router.delete("/:shortCode", UrlController.deleteUrl);
 
 export default router;

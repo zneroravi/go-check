@@ -46,6 +46,12 @@ export class UrlModel {
     return result.changes > 0;
   }
 
+  static deleteByShortCode(shortCode: string): boolean {
+    const stmt = db.prepare(`DELETE FROM urls WHERE short_code = ?`);
+    const result = stmt.run(shortCode);
+    return result.changes > 0;
+  }
+
   static existsByShortCode(shortCode: string): boolean {
     const stmt = db.prepare(`SELECT 1 FROM urls WHERE short_code = ?`);
     return !!stmt.get(shortCode);

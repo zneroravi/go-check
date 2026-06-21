@@ -51,17 +51,17 @@ export class UrlController {
 
   static async deleteUrl(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
-      if (!id) {
-        throw new BadRequestError("URL ID is required");
+      const { shortCode } = req.params;
+      if (!shortCode) {
+        throw new BadRequestError("Short code is required");
       }
 
-      const deleted = UrlService.deleteUrl(id);
+      const deleted = UrlService.deleteUrl(shortCode);
       if (!deleted) {
-        throw new NotFoundError("URL not found");
+        throw new NotFoundError("Short URL not found");
       }
 
-      res.status(204).send();
+      res.status(200).json({ message: "Deleted" });
     } catch (error) {
       next(error);
     }
