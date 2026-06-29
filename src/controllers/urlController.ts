@@ -7,6 +7,11 @@ const createUrlSchema = z.object({
   originalUrl: z.string().url("Invalid URL format"),
 });
 
+const listQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+});
+
 export class UrlController {
   static async createShortUrl(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -22,10 +27,16 @@ export class UrlController {
     }
   }
 
-  static async getAllUrls(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async getAllUrls(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const urls = UrlService.getAllUrls();
-      res.json(urls);
+      const queryValidation = listQuerySchema.safeParse(req.query);
+      if (!queryValidation.success) {
+        throw new BadRequestError("Invalid query parameters: " + queryValidation.error.errors.map((e) => e.message).join(", "));
+      }
+
+      const { page, limit } = queryValidation.data;
+      const result = UrlService.getAllUrlsPaginated(page, limit);
+      res.json(result);
     } catch (error) {
       next(error);
     }
