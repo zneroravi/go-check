@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { UrlService } from "@/services/urlService";
-import { BadRequestError, NotFoundError } from "@/lib/errors";
+import { BadRequestError, ConflictError, NotFoundError } from "@/lib/errors";
 import { z } from "zod";
 
 const createUrlSchema = z.object({
   originalUrl: z.string().url("Invalid URL format"),
+  customCode: z.string().optional(),
 });
 
 export class UrlController {
