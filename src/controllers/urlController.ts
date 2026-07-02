@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const createUrlSchema = z.object({
   originalUrl: z.string().url("Invalid URL format"),
+  ttlHours: z.coerce.number().int().positive("ttl_hours must be a positive integer").optional(),
 });
 
 export class UrlController {
@@ -40,6 +41,12 @@ export class UrlController {
 
       const result = UrlService.redirectAndTrack(shortCode);
       if (!result) {
+        // Distinguish between "not found" and "expired" by checking the model directly
+        const url = UrlService.getUrlByShortCode(shortCode);
+        if (url && url.expiresAt && new Date(url.expiresAt) <= new Date()) {
+          res.status(410).json({ error: "Short URL has expired" });
+          return;
+        }
         throw new NotFoundError("Short URL not found");
       }
 
@@ -62,6 +69,15 @@ export class UrlController {
       }
 
       res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async purgeExpired(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const deleted = UrlService.purgeExpired();
+      res.json({ deleted });
     } catch (error) {
       next(error);
     }
