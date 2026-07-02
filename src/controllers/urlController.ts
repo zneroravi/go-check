@@ -4,7 +4,8 @@ import { BadRequestError, NotFoundError } from "@/lib/errors";
 import { z } from "zod";
 
 const createUrlSchema = z.object({
-  originalUrl: z.string().url("Invalid URL format"),
+  url: z.string().url("Invalid URL format"),
+  expires_at: z.string().datetime().optional().nullable(),
 });
 
 export class UrlController {
@@ -12,7 +13,8 @@ export class UrlController {
     try {
       const validation = createUrlSchema.safeParse(req.body);
       if (!validation.success) {
-        throw new BadRequestError(validation.error.errors.map((e) => e.message).join(", "));
+        const messages = validation.error.errors.map((e) => e.message).join(", ");
+        throw new BadRequestError(messages);
       }
 
       const result = UrlService.createShortUrl(validation.data);
@@ -56,7 +58,7 @@ export class UrlController {
         throw new BadRequestError("URL ID is required");
       }
 
-      const deleted = UrlService.deleteUrl(id);
+      const deleted = UrlService.deleteUrl(Number(id));
       if (!deleted) {
         throw new NotFoundError("URL not found");
       }
