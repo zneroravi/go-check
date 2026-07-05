@@ -50,4 +50,10 @@ export class UrlModel {
     const stmt = db.prepare(`SELECT 1 FROM urls WHERE short_code = ?`);
     return !!stmt.get(shortCode);
   }
+
+  static getStats(shortCode: string): { clicks: number } | undefined {
+    const stmt = db.prepare(`SELECT clicks FROM urls WHERE short_code = ?`);
+    const result = stmt.get(shortCode) as { clicks: number } | undefined;
+    return result;
+  }
 }
