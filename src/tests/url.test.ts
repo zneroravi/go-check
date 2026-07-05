@@ -69,16 +69,39 @@ describe("URL Shortener API", () => {
     expect(res.body.error).toBe("Short URL not found");
   });
 
-  it("DELETE /api/urls/:id deletes a URL", async () => {
+  it("DELETE /api/urls/:shortCode deletes a URL by short code", async () => {
     const createRes = await request(app)
       .post("/api/urls")
       .send({ originalUrl: "https://example.com/delete-test" });
 
-    const id = createRes.body.id;
-    const res = await request(app).delete(`/api/urls/${id}`);
-    expect(res.status).toBe(204);
+    const shortCode = createRes.body.shortCode;
+    const res = await request(app).delete(`/api/urls/${shortCode}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ message: "Deleted" });
 
-    const getRes = await request(app).get(`/api/urls/${createRes.body.shortCode}`);
+    const getRes = await request(app).get(`/api/urls/${shortCode}`);
     expect(getRes.status).toBe(404);
+  });
+
+  it("DELETE /api/urls/:shortCode returns 404 for nonexistent short code", async () => {
+    const res = await request(app).delete("/api/urls/nonexistent");
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe("Short URL not found");
+  });
+
+  it("DELETE /api/urls/:shortCode is reflected in the List endpoint", async () => {
+    const createRes = await request(app)
+      .post("/api/urls")
+      .send({ originalUrl: "https://example.com/list-delete-test" });
+
+    const shortCode = createRes.body.shortCode;
+
+    const listBefore = await request(app).get("/api/urls");
+    expect(listBefore.body.some((u: any) => u.shortCode === shortCode)).toBe(true);
+
+    await request(app).delete(`/api/urls/${shortCode}`);
+
+    const listAfter = await request(app).get("/api/urls");
+    expect(listAfter.body.some((u: any) => u.shortCode === shortCode)).toBe(false);
   });
 });
