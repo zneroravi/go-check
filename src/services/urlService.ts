@@ -58,6 +58,12 @@ export class UrlService {
     return { originalUrl: url.originalUrl, clicks: url.clicks + 1 };
   }
 
+  static getStats(shortCode: string): { click_count: number } | undefined {
+    const stats = UrlModel.getStats(shortCode);
+    if (!stats) return undefined;
+    return { click_count: stats.clicks };
+  }
+
   static deleteUrl(id: string): boolean {
     return UrlModel.delete(id);
   }
