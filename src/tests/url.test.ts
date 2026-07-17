@@ -81,4 +81,49 @@ describe("URL Shortener API", () => {
     const getRes = await request(app).get(`/api/urls/${createRes.body.shortCode}`);
     expect(getRes.status).toBe(404);
   });
+
+  it("GET /stats/:code returns the current click_count", async () => {
+    const createRes = await request(app)
+      .post("/api/urls")
+      .send({ originalUrl: "https://example.com/stats-test" });
+
+    const shortCode = createRes.body.shortCode;
+
+    // Initial stats should be 0
+    const statsRes = await request(app).get(`/api/urls/stats/${shortCode}`);
+    expect(statsRes.status).toBe(200);
+    expect(statsRes.body).toHaveProperty("click_count");
+    expect(statsRes.body.click_count).toBe(0);
+
+    // After a redirect, stats should increment
+    await request(app).get(`/api/urls/${shortCode}`);
+    const statsRes2 = await request(app).get(`/api/urls/stats/${shortCode}`);
+    expect(statsRes2.status).toBe(200);
+    expect(statsRes2.body.click_count).toBe(1);
+  });
+
+  it("GET /stats/:code returns 404 for unknown code", async () => {
+    const res = await request(app).get("/api/urls/stats/nonexistent");
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe("Short URL not found");
+  });
+
+  it("parallel redirects increment click_count correctly", async () => {
+    const createRes = await request(app)
+      .post("/api/urls")
+      .send({ originalUrl: "https://example.com/parallel-test" });
+
+    const shortCode = createRes.body.shortCode;
+
+    // Send 10 parallel redirect requests
+    const parallelRequests = Array.from({ length: 10 }, () =>
+      request(app).get(`/api/urls/${shortCode}`)
+    );
+
+    await Promise.all(parallelRequests);
+
+    const statsRes = await request(app).get(`/api/urls/stats/${shortCode}`);
+    expect(statsRes.status).toBe(200);
+    expect(statsRes.body.click_count).toBe(10);
+  });
 });
