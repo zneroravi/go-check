@@ -7,7 +7,8 @@ const SELECT_COLUMNS = `
   short_code as shortCode,
   clicks,
   created_at as createdAt,
-  updated_at as updatedAt
+  updated_at as updatedAt,
+  expires_at as expiresAt
 `;
 
 export class UrlModel {
@@ -21,18 +22,19 @@ export class UrlModel {
     return stmt.get(shortCode) as Url | undefined;
   }
 
-  static findById(id: string): Url | undefined {
+  static findById(id: number): Url | undefined {
     const stmt = db.prepare(`SELECT ${SELECT_COLUMNS} FROM urls WHERE id = ?`);
     return stmt.get(id) as Url | undefined;
   }
 
-  static create(data: { id: string; originalUrl: string; shortCode: string }): Url {
+  static create(data: { originalUrl: string; shortCode: string; expiresAt?: string | null }): Url {
     const stmt = db.prepare(`
-      INSERT INTO urls (id, original_url, short_code)
+      INSERT INTO urls (original_url, short_code, expires_at)
       VALUES (?, ?, ?)
     `);
-    const info = stmt.run(data.id, data.originalUrl, data.shortCode);
-    return this.findById(data.id)!;
+    const info = stmt.run(data.originalUrl, data.shortCode, data.expiresAt ?? null);
+    // SQLite returns lastInsertRowid as number for INTEGER PRIMARY KEY
+    return this.findById(Number(info.lastInsertRowid))!;
   }
 
   static incrementClicks(shortCode: string): void {
@@ -40,7 +42,7 @@ export class UrlModel {
     stmt.run(shortCode);
   }
 
-  static delete(id: string): boolean {
+  static delete(id: number): boolean {
     const stmt = db.prepare(`DELETE FROM urls WHERE id = ?`);
     const result = stmt.run(id);
     return result.changes > 0;

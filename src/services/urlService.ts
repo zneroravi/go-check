@@ -1,19 +1,17 @@
 import { UrlModel } from "@/models/Url";
 import { CreateUrlInput, UrlResponse } from "@/types";
-import { generateId, generateShortCode } from "@/utils/helpers";
+import { generateShortCode } from "@/utils/helpers";
 import { ConflictError } from "@/lib/errors";
 import { config } from "@/config";
 
-const MAX_GENERATION_ATTEMPTS = 10;
+const MAX_GENERATION_ATTEMPTS = 100;
 
-function toResponse(url: { id: string; originalUrl: string; shortCode: string; clicks: number; createdAt: Date }): UrlResponse {
+function toCreateResponse(url: { id: number; originalUrl: string; shortCode: string; createdAt: string }): UrlResponse {
   return {
-    id: url.id,
-    originalUrl: url.originalUrl,
-    shortCode: url.shortCode,
-    shortUrl: `${config.baseUrl}/${url.shortCode}`,
-    clicks: url.clicks,
-    createdAt: url.createdAt,
+    short_url: `${config.baseUrl}/${url.shortCode}`,
+    code: url.shortCode,
+    original_url: url.originalUrl,
+    created_at: url.createdAt,
   };
 }
 
@@ -32,23 +30,38 @@ export class UrlService {
     }
 
     const url = UrlModel.create({
-      id: generateId(),
-      originalUrl: input.originalUrl,
+      originalUrl: input.url,
       shortCode,
+      expiresAt: input.expiresAt ?? null,
     });
 
-    return toResponse(url);
+    return toCreateResponse(url);
   }
 
-  static getAllUrls(): UrlResponse[] {
+  static getAllUrls() {
     const urls = UrlModel.findAll();
-    return urls.map(toResponse);
+    return urls.map((u) => ({
+      id: u.id,
+      originalUrl: u.originalUrl,
+      shortCode: u.shortCode,
+      shortUrl: `${config.baseUrl}/${u.shortCode}`,
+      clicks: u.clicks,
+      createdAt: u.createdAt,
+      expiresAt: u.expiresAt,
+    }));
   }
 
-  static getUrlByShortCode(shortCode: string): UrlResponse | undefined {
+  static getUrlByShortCode(shortCode: string) {
     const url = UrlModel.findByShortCode(shortCode);
     if (!url) return undefined;
-    return toResponse(url);
+    return {
+      id: url.id,
+      originalUrl: url.originalUrl,
+      shortCode: url.shortCode,
+      shortUrl: `${config.baseUrl}/${url.shortCode}`,
+      clicks: url.clicks,
+      createdAt: url.createdAt,
+    };
   }
 
   static redirectAndTrack(shortCode: string): { originalUrl: string; clicks: number } | undefined {
@@ -58,7 +71,7 @@ export class UrlService {
     return { originalUrl: url.originalUrl, clicks: url.clicks + 1 };
   }
 
-  static deleteUrl(id: string): boolean {
+  static deleteUrl(id: number): boolean {
     return UrlModel.delete(id);
   }
 }
