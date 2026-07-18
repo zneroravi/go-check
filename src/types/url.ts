@@ -1,23 +1,36 @@
 export interface Url {
-  id: number;
+  id: string;
   originalUrl: string;
   shortCode: string;
   clicks: number;
   createdAt: Date;
   updatedAt: Date;
-  expiresAt?: string | null;
+  expiresAt?: Date;
 }
 
 export interface CreateUrlInput {
-  url: string;
-  expiresAt?: string | null;
+  originalUrl: string;
 }
 
 export interface UrlResponse {
-  short_url: string;
-  code: string;
-  original_url: string;
-  created_at: string;
+  id: string;
+  originalUrl: string;
+  shortCode: string;
+  shortUrl: string;
+  clicks: number;
+  createdAt: Date;
+  expiresAt?: Date;
 }
 
-export type UrlListResponse = UrlResponse[];
+export interface UrlListMeta {
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface UrlListResponse {
+  links: UrlResponse[];
+  total: number;
+  page: number;
+  limit: number;
+}
