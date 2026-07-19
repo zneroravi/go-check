@@ -5,12 +5,12 @@ export interface Url {
   clicks: number;
   createdAt: Date;
   updatedAt: Date;
-  expiresAt?: Date;
+  expiresAt: Date | null;
 }
 
 export interface CreateUrlInput {
   originalUrl: string;
-  customCode?: string;
+  ttlHours?: number;
 }
 
 export interface UrlResponse {
@@ -20,18 +20,7 @@ export interface UrlResponse {
   shortUrl: string;
   clicks: number;
   createdAt: Date;
-  expiresAt?: Date;
+  expiresAt: Date | null;
 }
 
-export interface UrlListMeta {
-  total: number;
-  page: number;
-  limit: number;
-}
-
-export interface UrlListResponse {
-  links: UrlResponse[];
-  total: number;
-  page: number;
-  limit: number;
-}
+export type UrlListResponse = UrlResponse[];

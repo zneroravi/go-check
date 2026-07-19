@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { UrlService } from "@/services/urlService";
-import { BadRequestError, ConflictError, NotFoundError } from "@/lib/errors";
+import { BadRequestError, NotFoundError } from "@/lib/errors";
 import { z } from "zod";
 
 const createUrlSchema = z.object({
   originalUrl: z.string().url("Invalid URL format"),
-  customCode: z.string().optional(),
+  ttlHours: z.coerce.number().int().positive("ttl_hours must be a positive integer").optional(),
 });
 
 export class UrlController {
@@ -41,6 +41,12 @@ export class UrlController {
 
       const result = UrlService.redirectAndTrack(shortCode);
       if (!result) {
+        // Distinguish between "not found" and "expired" by checking the model directly
+        const url = UrlService.getUrlByShortCode(shortCode);
+        if (url && url.expiresAt && new Date(url.expiresAt) <= new Date()) {
+          res.status(410).json({ error: "Short URL has expired" });
+          return;
+        }
         throw new NotFoundError("Short URL not found");
       }
 
@@ -50,37 +56,28 @@ export class UrlController {
     }
   }
 
-  static async getStats(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async deleteUrl(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { code } = req.params;
-      if (!code) {
-        throw new BadRequestError("Short code is required");
+      const { id } = req.params;
+      if (!id) {
+        throw new BadRequestError("URL ID is required");
       }
 
-      const stats = UrlService.getStats(code);
-      if (!stats) {
-        throw new NotFoundError("Short URL not found");
+      const deleted = UrlService.deleteUrl(id);
+      if (!deleted) {
+        throw new NotFoundError("URL not found");
       }
 
-      res.json(stats);
+      res.status(204).send();
     } catch (error) {
       next(error);
     }
   }
 
-  static async deleteUrl(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async purgeExpired(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { shortCode } = req.params;
-      if (!shortCode) {
-        throw new BadRequestError("Short code is required");
-      }
-
-      const deleted = UrlService.deleteUrl(shortCode);
-      if (!deleted) {
-        throw new NotFoundError("Short URL not found");
-      }
-
-      res.status(200).json({ message: "Deleted" });
+      const deleted = UrlService.purgeExpired();
+      res.json({ deleted });
     } catch (error) {
       next(error);
     }

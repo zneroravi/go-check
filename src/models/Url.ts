@@ -17,18 +17,6 @@ export class UrlModel {
     return stmt.all() as Url[];
   }
 
-  static findAllPaginated(offset: number, limit: number): { urls: Url[]; total: number } {
-    const countStmt = db.prepare(`SELECT COUNT(*) as count FROM urls`);
-    const total = (countStmt.get() as { count: number }).count;
-
-    const stmt = db.prepare(
-      `SELECT ${SELECT_COLUMNS} FROM urls ORDER BY created_at DESC LIMIT ? OFFSET ?`
-    );
-    const urls = stmt.all(limit, offset) as Url[];
-
-    return { urls, total };
-  }
-
   static findByShortCode(shortCode: string): Url | undefined {
     const stmt = db.prepare(`SELECT ${SELECT_COLUMNS} FROM urls WHERE short_code = ?`);
     return stmt.get(shortCode) as Url | undefined;
@@ -39,12 +27,12 @@ export class UrlModel {
     return stmt.get(id) as Url | undefined;
   }
 
-  static create(data: { id: string; originalUrl: string; shortCode: string; expiresAt?: Date }): Url {
+  static create(data: { id: string; originalUrl: string; shortCode: string; expiresAt: string | null }): Url {
     const stmt = db.prepare(`
       INSERT INTO urls (id, original_url, short_code, expires_at)
       VALUES (?, ?, ?, ?)
     `);
-    stmt.run(data.id, data.originalUrl, data.shortCode, data.expiresAt ?? null);
+    const info = stmt.run(data.id, data.originalUrl, data.shortCode, data.expiresAt);
     return this.findById(data.id)!;
   }
 
@@ -59,20 +47,14 @@ export class UrlModel {
     return result.changes > 0;
   }
 
-  static deleteByShortCode(shortCode: string): boolean {
-    const stmt = db.prepare(`DELETE FROM urls WHERE short_code = ?`);
-    const result = stmt.run(shortCode);
-    return result.changes > 0;
-  }
-
   static existsByShortCode(shortCode: string): boolean {
     const stmt = db.prepare(`SELECT 1 FROM urls WHERE short_code = ?`);
     return !!stmt.get(shortCode);
   }
 
-  static getStats(shortCode: string): { clicks: number } | undefined {
-    const stmt = db.prepare(`SELECT clicks FROM urls WHERE short_code = ?`);
-    const result = stmt.get(shortCode) as { clicks: number } | undefined;
-    return result;
+  static purgeExpired(): number {
+    const stmt = db.prepare(`DELETE FROM urls WHERE expires_at IS NOT NULL AND expires_at <= datetime('now')`);
+    const result = stmt.run();
+    return result.changes;
   }
 }
