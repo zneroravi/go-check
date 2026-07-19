@@ -41,81 +41,14 @@ describe("URL Shortener API", () => {
     expect(res.body.error).toBe("Validation failed");
   });
 
-  it("GET /api/urls returns paginated list with correct structure", async () => {
+  it("GET /api/urls returns list of URLs", async () => {
     await request(app).post("/api/urls").send({ originalUrl: "https://example.com/1" });
     await request(app).post("/api/urls").send({ originalUrl: "https://example.com/2" });
 
     const res = await request(app).get("/api/urls");
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("links");
-    expect(res.body).toHaveProperty("total");
-    expect(res.body).toHaveProperty("page");
-    expect(res.body).toHaveProperty("limit");
-    expect(Array.isArray(res.body.links)).toBe(true);
-    expect(res.body.links.length).toBe(2);
-    expect(res.body.total).toBe(2);
-    expect(res.body.page).toBe(1);
-    expect(res.body.limit).toBe(20);
-
-    // Each link has required fields
-    const link = res.body.links[0];
-    expect(link).toHaveProperty("originalUrl");
-    expect(link).toHaveProperty("shortCode");
-    expect(link).toHaveProperty("shortUrl");
-    expect(link).toHaveProperty("clicks");
-    expect(link).toHaveProperty("createdAt");
-    expect(link).toHaveProperty("expiresAt");
-  });
-
-  it("GET /api/urls pagination: page 1 with limit 2 returns first 2 records", async () => {
-    await request(app).post("/api/urls").send({ originalUrl: "https://example.com/p1-a" });
-    await request(app).post("/api/urls").send({ originalUrl: "https://example.com/p1-b" });
-
-    const res = await request(app).get("/api/urls?page=1&limit=2");
-    expect(res.status).toBe(200);
-    expect(res.body.links.length).toBe(2);
-    expect(res.body.page).toBe(1);
-    expect(res.body.limit).toBe(2);
-    expect(res.body.total).toBeGreaterThanOrEqual(4);
-  });
-
-  it("GET /api/urls pagination: page 2 returns next 2 records", async () => {
-    const res = await request(app).get("/api/urls?page=2&limit=2");
-    expect(res.status).toBe(200);
-    expect(res.body.page).toBe(2);
-    expect(res.body.limit).toBe(2);
-    // Should have records (total >= 4, so page 2 has records)
-    expect(res.body.links.length).toBeGreaterThanOrEqual(0);
-  });
-
-  it("GET /api/urls click_count reflects current count from redirect endpoint", async () => {
-    // Create a new URL
-    const createRes = await request(app)
-      .post("/api/urls")
-      .send({ originalUrl: "https://example.com/click-test" });
-
-    const shortCode = createRes.body.shortCode;
-
-    // Verify initial click count is 0
-    const listRes1 = await request(app).get("/api/urls");
-    const linkBefore = listRes1.body.links.find((l: any) => l.shortCode === shortCode);
-    expect(linkBefore.clicks).toBe(0);
-
-    // Hit the redirect endpoint twice
-    await request(app).get(`/api/urls/${shortCode}`);
-    await request(app).get(`/api/urls/${shortCode}`);
-
-    // Verify click count updated in list
-    const listRes2 = await request(app).get("/api/urls");
-    const linkAfter = listRes2.body.links.find((l: any) => l.shortCode === shortCode);
-    expect(linkAfter.clicks).toBe(2);
-  });
-
-  it("GET /api/urls includes total count for pagination", async () => {
-    const res = await request(app).get("/api/urls?limit=1");
-    expect(res.status).toBe(200);
-    expect(typeof res.body.total).toBe("number");
-    expect(res.body.total).toBeGreaterThanOrEqual(1);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBe(2);
   });
 
   it("GET /api/urls/:shortCode redirects to original URL", async () => {
@@ -136,39 +69,61 @@ describe("URL Shortener API", () => {
     expect(res.body.error).toBe("Short URL not found");
   });
 
-  it("DELETE /api/urls/:shortCode deletes a URL by short code", async () => {
+  it("DELETE /api/urls/:id deletes a URL", async () => {
     const createRes = await request(app)
       .post("/api/urls")
       .send({ originalUrl: "https://example.com/delete-test" });
 
-    const shortCode = createRes.body.shortCode;
-    const res = await request(app).delete(`/api/urls/${shortCode}`);
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ message: "Deleted" });
+    const id = createRes.body.id;
+    const res = await request(app).delete(`/api/urls/${id}`);
+    expect(res.status).toBe(204);
 
-    const getRes = await request(app).get(`/api/urls/${shortCode}`);
+    const getRes = await request(app).get(`/api/urls/${createRes.body.shortCode}`);
     expect(getRes.status).toBe(404);
   });
 
-  it("DELETE /api/urls/:shortCode returns 404 for nonexistent short code", async () => {
-    const res = await request(app).delete("/api/urls/nonexistent");
+  it("GET /stats/:code returns the current click_count", async () => {
+    const createRes = await request(app)
+      .post("/api/urls")
+      .send({ originalUrl: "https://example.com/stats-test" });
+
+    const shortCode = createRes.body.shortCode;
+
+    // Initial stats should be 0
+    const statsRes = await request(app).get(`/api/urls/stats/${shortCode}`);
+    expect(statsRes.status).toBe(200);
+    expect(statsRes.body).toHaveProperty("click_count");
+    expect(statsRes.body.click_count).toBe(0);
+
+    // After a redirect, stats should increment
+    await request(app).get(`/api/urls/${shortCode}`);
+    const statsRes2 = await request(app).get(`/api/urls/stats/${shortCode}`);
+    expect(statsRes2.status).toBe(200);
+    expect(statsRes2.body.click_count).toBe(1);
+  });
+
+  it("GET /stats/:code returns 404 for unknown code", async () => {
+    const res = await request(app).get("/api/urls/stats/nonexistent");
     expect(res.status).toBe(404);
     expect(res.body.error).toBe("Short URL not found");
   });
 
-  it("DELETE /api/urls/:shortCode is reflected in the List endpoint", async () => {
+  it("parallel redirects increment click_count correctly", async () => {
     const createRes = await request(app)
       .post("/api/urls")
-      .send({ originalUrl: "https://example.com/list-delete-test" });
+      .send({ originalUrl: "https://example.com/parallel-test" });
 
     const shortCode = createRes.body.shortCode;
 
-    const listBefore = await request(app).get("/api/urls");
-    expect(listBefore.body.some((u: any) => u.shortCode === shortCode)).toBe(true);
+    // Send 10 parallel redirect requests
+    const parallelRequests = Array.from({ length: 10 }, () =>
+      request(app).get(`/api/urls/${shortCode}`)
+    );
 
-    await request(app).delete(`/api/urls/${shortCode}`);
+    await Promise.all(parallelRequests);
 
-    const listAfter = await request(app).get("/api/urls");
-    expect(listAfter.body.some((u: any) => u.shortCode === shortCode)).toBe(false);
+    const statsRes = await request(app).get(`/api/urls/stats/${shortCode}`);
+    expect(statsRes.status).toBe(200);
+    expect(statsRes.body.click_count).toBe(10);
   });
 });

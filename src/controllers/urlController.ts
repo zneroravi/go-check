@@ -50,6 +50,24 @@ export class UrlController {
     }
   }
 
+  static async getStats(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { code } = req.params;
+      if (!code) {
+        throw new BadRequestError("Short code is required");
+      }
+
+      const stats = UrlService.getStats(code);
+      if (!stats) {
+        throw new NotFoundError("Short URL not found");
+      }
+
+      res.json(stats);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async deleteUrl(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { shortCode } = req.params;
