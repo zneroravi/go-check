@@ -73,7 +73,7 @@ export class UrlService {
     return { originalUrl: url.originalUrl, clicks: url.clicks + 1 };
   }
 
-  static deleteUrl(id: string): boolean {
-    return UrlModel.delete(id);
+  static deleteUrl(shortCode: string): boolean {
+    return UrlModel.deleteByShortCode(shortCode);
   }
 }

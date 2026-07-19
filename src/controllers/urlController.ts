@@ -4,13 +4,7 @@ import { BadRequestError, NotFoundError } from "@/lib/errors";
 import { z } from "zod";
 
 const createUrlSchema = z.object({
-  url: z.string().url("Invalid URL format"),
-  expires_at: z.string().datetime().optional().nullable(),
-});
-
-const listQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  originalUrl: z.string().url("Invalid URL format"),
 });
 
 export class UrlController {
@@ -18,8 +12,7 @@ export class UrlController {
     try {
       const validation = createUrlSchema.safeParse(req.body);
       if (!validation.success) {
-        const messages = validation.error.errors.map((e) => e.message).join(", ");
-        throw new BadRequestError(messages);
+        throw new BadRequestError(validation.error.errors.map((e) => e.message).join(", "));
       }
 
       const result = UrlService.createShortUrl(validation.data);
@@ -29,16 +22,10 @@ export class UrlController {
     }
   }
 
-  static async getAllUrls(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async getAllUrls(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const queryValidation = listQuerySchema.safeParse(req.query);
-      if (!queryValidation.success) {
-        throw new BadRequestError("Invalid query parameters: " + queryValidation.error.errors.map((e) => e.message).join(", "));
-      }
-
-      const { page, limit } = queryValidation.data;
-      const result = UrlService.getAllUrlsPaginated(page, limit);
-      res.json(result);
+      const urls = UrlService.getAllUrls();
+      res.json(urls);
     } catch (error) {
       next(error);
     }
@@ -64,17 +51,17 @@ export class UrlController {
 
   static async deleteUrl(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.params;
-      if (!id) {
-        throw new BadRequestError("URL ID is required");
+      const { shortCode } = req.params;
+      if (!shortCode) {
+        throw new BadRequestError("Short code is required");
       }
 
-      const deleted = UrlService.deleteUrl(Number(id));
+      const deleted = UrlService.deleteUrl(shortCode);
       if (!deleted) {
-        throw new NotFoundError("URL not found");
+        throw new NotFoundError("Short URL not found");
       }
 
-      res.status(204).send();
+      res.status(200).json({ message: "Deleted" });
     } catch (error) {
       next(error);
     }
