@@ -10,6 +10,7 @@ export interface Url {
 
 export interface CreateUrlInput {
   originalUrl: string;
+  customCode?: string;
 }
 
 export interface UrlResponse {

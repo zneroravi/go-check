@@ -1,7 +1,7 @@
 import { UrlModel } from "@/models/Url";
 import { CreateUrlInput, UrlResponse, UrlListResponse } from "@/types";
 import { generateId, generateShortCode } from "@/utils/helpers";
-import { ConflictError } from "@/lib/errors";
+import { BadRequestError, ConflictError } from "@/lib/errors";
 import { config } from "@/config";
 
 const MAX_GENERATION_ATTEMPTS = 10;
@@ -25,18 +25,35 @@ function toResponse(url: {
   };
 }
 
+function validateCustomCode(customCode: string): void {
+  if (customCode.length < 3 || customCode.length > 12) {
+    throw new BadRequestError("Custom code must be between 3 and 12 characters long");
+  }
+  if (!/^[a-zA-Z0-9]+$/.test(customCode)) {
+    throw new BadRequestError("Custom code must be alphanumeric (letters and digits only)");
+  }
+}
+
 export class UrlService {
   static createShortUrl(input: CreateUrlInput): UrlResponse {
     let shortCode: string;
-    let attempts = 0;
 
-    do {
-      shortCode = generateShortCode(config.shortCodeLength);
-      attempts++;
-    } while (UrlModel.existsByShortCode(shortCode) && attempts < MAX_GENERATION_ATTEMPTS);
+    if (input.customCode) {
+      validateCustomCode(input.customCode);
+      if (UrlModel.existsByShortCode(input.customCode)) {
+        throw new ConflictError("Custom code already in use");
+      }
+      shortCode = input.customCode;
+    } else {
+      let attempts = 0;
+      do {
+        shortCode = generateShortCode(config.shortCodeLength);
+        attempts++;
+      } while (UrlModel.existsByShortCode(shortCode) && attempts < MAX_GENERATION_ATTEMPTS);
 
-    if (UrlModel.existsByShortCode(shortCode)) {
-      throw new ConflictError("Could not generate unique short code. Please try again.");
+      if (UrlModel.existsByShortCode(shortCode)) {
+        throw new ConflictError("Could not generate unique short code. Please try again.");
+      }
     }
 
     const url = UrlModel.create({
