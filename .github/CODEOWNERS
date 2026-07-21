@@ -1,0 +1,22 @@
+# Default owners for everything
+* @maintainers
+
+# Source code ownership
+/src/ @maintainers
+/src/**/*.ts @maintainers
+/src/**/*.js @maintainers
+
+# Configuration files
+/.github/ @maintainers
+/.github/**/*.yml @maintainers
+/.github/**/*.md @maintainers
+
+# Root config files
+/package.json @maintainers
+/tsconfig.json @maintainers
+/.editorconfig @maintainers
+/.gitignore @maintainers
+
+# Documentation
+/*.md @maintainers
+/docs/ @maintainers
