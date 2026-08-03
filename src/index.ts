@@ -49,4 +49,16 @@ app.listen(config.port, () => {
   logger.info(`Server running on :${config.port}`);
 });
 
+// Global error handlers
+process.on("uncaughtException", (error: Error) => {
+  logger.error("Uncaught Exception:", error);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason: unknown) => {
+  const message = reason instanceof Error ? reason.message : String(reason);
+  logger.error("Unhandled Rejection:", message);
+  process.exit(1);
+});
+
 export default app;
