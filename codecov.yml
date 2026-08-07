@@ -1,0 +1,27 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 1%
+        threshold: 1%
+        informational: false
+    patch:
+      default:
+        target: 5%
+        threshold: 5%
+        informational: false
+
+# Ignore test files and configuration files
+ignore:
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "**/tests/**"
+  - "**/vitest.config.ts"
+  - "**/tsconfig.json"
+  - "**/.eslintrc.*"
+  - "**/.prettierrc.*"
+  - "**/codecov.yml"
+
+# Do not require a comment on every PR
+comment:
+  require_changes: false
