@@ -1,0 +1,22 @@
+# Auto-detect text files and ensure consistent line endings
+* text=auto
+
+# Source files
+*.ts text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# SQLite database files should be treated as binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+
+# Lock files
+package-lock.json text eol=lf
+
+# Generated files
+dist/ linguist-generated=true
+node_modules/ linguist-vendored=true
