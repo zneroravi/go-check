@@ -13,7 +13,7 @@ export class UrlController {
     try {
       const validation = createUrlSchema.safeParse(req.body);
       if (!validation.success) {
-        throw new BadRequestError(validation.error.errors.map((e) => e.message).join(", "));
+        throw new BadRequestError(validation.error.issues.map((e: any) => e.message).join(", "));
       }
 
       const result = UrlService.createShortUrl(validation.data);
