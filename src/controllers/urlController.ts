@@ -59,7 +59,7 @@ export class UrlController {
   static async deleteUrl(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
-      if (!id) {
+      if (!id || Array.isArray(id)) {
         throw new BadRequestError("URL ID is required");
       }
 
