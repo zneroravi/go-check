@@ -35,7 +35,7 @@ export class UrlController {
   static async redirectToOriginal(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { shortCode } = req.params;
-      if (!shortCode) {
+      if (!shortCode || Array.isArray(shortCode)) {
         throw new BadRequestError("Short code is required");
       }
 
