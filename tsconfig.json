@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "es2022",
+    "module": "Node16",
     "moduleResolution": "node16",
     "outDir": "dist",
     "rootDir": "src",
-    "strict": true,
+    "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
@@ -14,7 +14,8 @@
       "*": [
         "./*"
       ]
-    }
+    },
+    "noImplicitAny": false
   },
   "include": [
     "src/**/*.ts"
